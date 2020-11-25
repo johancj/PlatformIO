@@ -1,0 +1,34 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+
+// PIO Unified Debugger
+//
+// Documentation: https://docs.platformio.org/page/plus/debugging.html
+// Configuration: https://docs.platformio.org/page/projectconf/section_env_debug.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "executable": "d:/Documents/PlatformIO/Projects/201026-203726-stm32cube-ll-blink/.pio/build/nucleo_f401re/firmware.elf",
+            "toolchainBinDir": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "svdPath": "C:/Users/Johan/.platformio/platforms/ststm32/misc/svd/STM32F401xE.svd",
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug"
+            },
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (skip Pre-Debug)",
+            "executable": "d:/Documents/PlatformIO/Projects/201026-203726-stm32cube-ll-blink/.pio/build/nucleo_f401re/firmware.elf",
+            "toolchainBinDir": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "svdPath": "C:/Users/Johan/.platformio/platforms/ststm32/misc/svd/STM32F401xE.svd",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}
