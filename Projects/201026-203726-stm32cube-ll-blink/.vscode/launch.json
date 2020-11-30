@@ -13,11 +13,12 @@
             "request": "launch",
             "name": "PIO Debug",
             "executable": "d:/Documents/PlatformIO/Projects/201026-203726-stm32cube-ll-blink/.pio/build/nucleo_f401re/firmware.elf",
+            "projectEnvName": "nucleo_f401re",
             "toolchainBinDir": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "svdPath": "C:/Users/Johan/.platformio/platforms/ststm32/misc/svd/STM32F401xE.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
-                "task": "Pre-Debug"
+                "task": "Pre-Debug (nucleo_f401re)"
             },
             "internalConsoleOptions": "openOnSessionStart"
         },
@@ -26,6 +27,7 @@
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
             "executable": "d:/Documents/PlatformIO/Projects/201026-203726-stm32cube-ll-blink/.pio/build/nucleo_f401re/firmware.elf",
+            "projectEnvName": "nucleo_f401re",
             "toolchainBinDir": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "svdPath": "C:/Users/Johan/.platformio/platforms/ststm32/misc/svd/STM32F401xE.svd",
             "internalConsoleOptions": "openOnSessionStart"

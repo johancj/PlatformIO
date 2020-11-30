@@ -8,6 +8,8 @@
 #define LED_GPIO_PORT           GPIOA
 #define LED_GPIO_CLK_ENABLE()   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA)
 
+
+
 void Configure_GPIO(void)
 {
   LED_GPIO_CLK_ENABLE();
@@ -40,6 +42,7 @@ void SystemClock_Config(void)
   {
   };
 
+  GPIOA->BSRR = 0x00000000;
   /* Set APB1 & APB2 prescaler */
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_2);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);

@@ -83,7 +83,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=50001",
+                "PLATFORMIO=50003",
                 "STM32F4",
                 "STM32F401xE",
                 "STM32F40_41xxx",
@@ -92,7 +92,7 @@
                 "F_CPU=84000000L",
                 ""
             ],
-            "intelliSenseMode": "clang-x64",
+            "intelliSenseMode": "gcc-x64",
             "compilerPath": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin/arm-none-eabi-gcc.exe",
             "compilerArgs": [
                 "-mthumb",
