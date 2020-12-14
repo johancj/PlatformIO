@@ -10,7 +10,6 @@ void setup() {
 int i=1;
 
 
-
 void loop() {
   // put your main code here, to run repeatedly:
   digitalWrite(onboard_led, HIGH);

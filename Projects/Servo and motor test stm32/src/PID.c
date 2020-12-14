@@ -10,7 +10,7 @@ void PID_init(PID_t* pid){
     pid->T = 0.03f; // seconds
 
     // output static clamping
-	pid->lim_max_output = 100.0f;
+	pid->lim_max_output = 40.0f;
 	pid->lim_min_output = - pid->lim_max_output;
 
     // Integrator static clamping
@@ -65,13 +65,14 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 	//pid->d_term = pid->Kd / pid->T * (reference - pid->prev_reference); // Using reference for PID to reduce step function effect from target
 	
 	// PID output
-	pid->u = (int16_t)(p_term + pid->i_term + pid->d_term);
+	pid->u = (p_term + pid->i_term + pid->d_term);
 	
 	// Update memory
 	pid->prev_error = error;
     pid->prev_reference = reference;
 	
-	if (pid->u > 0){
+	
+ /*	if (pid->u > 0){
 		PIOD->PIO_CODR |= PIO_SODR_P10; //Motor direction:0
 	}
 	else{
@@ -87,5 +88,5 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 	}
 	else{
 		DACC->DACC_CDR = abs(pid->u);
-	}
+	} */
 }
