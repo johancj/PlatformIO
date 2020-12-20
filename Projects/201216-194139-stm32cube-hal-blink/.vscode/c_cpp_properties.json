@@ -1,0 +1,61 @@
+{
+    "configurations": [
+        {
+            "name": "!!! WARNING !!! AUTO-GENERATED FILE, PLEASE DO NOT MODIFY IT AND USE https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags"
+        },
+        {
+            "name": "Win32",
+            "includePath": [
+                "d:/Documents/PlatformIO/Projects/201216-194139-stm32cube-hal-blink/include",
+                "d:/Documents/PlatformIO/Projects/201216-194139-stm32cube-hal-blink/src",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/CMSIS/Include",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/CMSIS/Device/ST/STM32F0xx/Include",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/STM32F0xx_HAL_Driver/Inc",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/Common",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/STM32F0xx-Nucleo",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/hx8347d",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/l3gd20",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/spfd5408",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/st7735",
+                "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/stlm75",
+                "C:/Users/Johan/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "d:/Documents/PlatformIO/Projects/201216-194139-stm32cube-hal-blink/include",
+                    "d:/Documents/PlatformIO/Projects/201216-194139-stm32cube-hal-blink/src",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/CMSIS/Include",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/CMSIS/Device/ST/STM32F0xx/Include",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/STM32F0xx_HAL_Driver/Inc",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/Common",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/STM32F0xx-Nucleo",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/hx8347d",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/l3gd20",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/spfd5408",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/st7735",
+                    "C:/Users/Johan/.platformio/packages/framework-stm32cube/f0/Drivers/BSP/Components/stlm75",
+                    "C:/Users/Johan/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50003",
+                "STM32F072xB",
+                "F0",
+                "USE_HAL_DRIVER",
+                "F_CPU=48000000L",
+                ""
+            ],
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin/arm-none-eabi-gcc.exe",
+            "compilerArgs": [
+                "-mthumb",
+                "-mcpu=cortex-m0",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

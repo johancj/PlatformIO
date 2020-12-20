@@ -1,0 +1,36 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+
+// PIO Unified Debugger
+//
+// Documentation: https://docs.platformio.org/page/plus/debugging.html
+// Configuration: https://docs.platformio.org/page/projectconf/section_env_debug.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "executable": "d:/Documents/PlatformIO/Projects/201216-194139-stm32cube-hal-blink/.pio/build/nucleo_f072rb/firmware.elf",
+            "projectEnvName": "nucleo_f072rb",
+            "toolchainBinDir": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "svdPath": "C:/Users/Johan/.platformio/platforms/ststm32/misc/svd/STM32F072x.svd",
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug (nucleo_f072rb)"
+            },
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (skip Pre-Debug)",
+            "executable": "d:/Documents/PlatformIO/Projects/201216-194139-stm32cube-hal-blink/.pio/build/nucleo_f072rb/firmware.elf",
+            "projectEnvName": "nucleo_f072rb",
+            "toolchainBinDir": "C:/Users/Johan/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
+            "svdPath": "C:/Users/Johan/.platformio/platforms/ststm32/misc/svd/STM32F072x.svd",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}

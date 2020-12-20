@@ -1,4 +1,31 @@
+#include <stdio.h>
+
 #include "PID.h"
+#include "USART.h"
+
+#include "stm32f1xx.h"
+
+volatile uint8_t count_interrupts = 0;
+
+void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample time T
+
+	// Enable peripheral clock
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN; // Enable TIM2 pheripheral clock
+
+	TIM2->CR1 &= ~(TIM_CR1_DIR | TIM_CR1_CMS); // Sets TIM2 as up counter
+	TIM2->CR1 |= TIM_CR1_URS; // Only counter overflow generates interrupt
+	
+	TIM2->CNT = 0; // Clear counter register
+	TIM2->PSC = 7200; // Provides CK_CNT = f_(CK_PSC) / PSC = 72MHz/PSC = 1MHz counter on TIM2.
+	TIM2->ARR = 9999; //Overflow with 1MHz/(ARR + 1) = 100Hz 			/////////////// Tror jeg!!!! /////////////
+
+	TIM2->DIER |= TIM_DIER_UIE; // Update interrupt enable
+
+	NVIC_EnableIRQ(TIM2_IRQn); 
+
+	TIM2->CR1 |= TIM_CR1_CEN; // Counter enable
+
+}
 
 void PID_init(PID_t* pid){
     // PID controller gains
@@ -24,6 +51,8 @@ void PID_init(PID_t* pid){
 	pid->d_term = 0.0f;
 	
 	pid->u = 0.0f;
+
+	PID_timer_init();
 }
 
 void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MCP6050) and target (controller) are rotation rate
@@ -90,3 +119,10 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 		DACC->DACC_CDR = abs(pid->u);
 	} */
 }
+
+void TIM2_IRQHandler(void){ //TIM2 global handler
+	if(TIM2->SR & TIM_SR_UIF_Msk){ // Update interrupt flag
+		// Do something like run PID
+		myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
+	}
+} 
