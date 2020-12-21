@@ -9,6 +9,8 @@ volatile uint8_t count_interrupts = 0;
 
 void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample time T
 
+	//Example: https://www.youtube.com/watch?v=2YSYWR309Y4&list=PLmY3zqJJdVeNIZ8z_yw7Db9ej3FVG0iLy&index=15&ab_channel=EddieAmaya
+	
 	// Enable peripheral clock
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN; // Enable TIM2 pheripheral clock
 
@@ -16,9 +18,10 @@ void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample ti
 	TIM2->CR1 |= TIM_CR1_URS; // Only counter overflow generates interrupt
 	
 	TIM2->CNT = 0; // Clear counter register
-	TIM2->PSC = 7200; // Provides CK_CNT = f_(CK_PSC) / PSC = 72MHz/PSC = 1MHz counter on TIM2.
-	TIM2->ARR = 9999; //Overflow with 1MHz/(ARR + 1) = 100Hz 			/////////////// Tror jeg!!!! /////////////
+	TIM2->PSC = 72 - 1; // Provides the counter clock frequency CK_CNT; fCK_PSC / (PSC[15:0] + 1) = 1MHz counter on TIM2.
+	TIM2->ARR = 10000 - 1; //Overflow with 1MHz/(ARR + 1) = 100Hz 			
 
+	TIM2->EGR |= TIM_EGR_UG; //UG: update generation ////////////Mulig denne må settes senere i initialiseringen. ////////////
 	TIM2->DIER |= TIM_DIER_UIE; // Update interrupt enable
 
 	NVIC_EnableIRQ(TIM2_IRQn); 
@@ -121,8 +124,6 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 }
 
 void TIM2_IRQHandler(void){ //TIM2 global handler
-	if(TIM2->SR & TIM_SR_UIF_Msk){ // Update interrupt flag
-		// Do something like run PID
-		myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
-	}
+	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
+	TIM2->SR &= ~TIM_SR_UIF;
 } 

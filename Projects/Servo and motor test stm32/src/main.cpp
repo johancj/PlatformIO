@@ -48,15 +48,25 @@ void oneshot_125_send(float motor1_output){ // motor1_output E [0, 100]
   TIM3->CR1 |= TIM_CR1_CEN; // Enable TIM3 (all motors output)
 }
 
+void test_one_shot(void){
+  pinMode(PA0, INPUT_PULLUP);
+  USART_init();
+  oneshot_125_init();
+  while(1){
+    value = analogRead(PA0);
+    value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
+    oneshot_125_send(value);
+  }
+}
+
 void setup() {
   pinMode(PA0, INPUT_PULLUP);
   //myServo.attach(PA6);
   //Serial1.begin(9600);
-  delay(50);
   oneshot_125_init();
-  __enable_irq(); // Enable interrupts
+  __enable_irq(); // Enable interrupts ///// Usikker på om denne er nødvendig ////////////
   USART_init();
-  PID_init(&pid);
+  //PID_init(&pid);
 }
 
 void loop() {
