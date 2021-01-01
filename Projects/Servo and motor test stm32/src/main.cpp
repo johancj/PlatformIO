@@ -5,18 +5,26 @@
 #include "Servo.h"
 #include "PID.h"
 #include "USART.h"
+#include "SBUS.h"
 
 
 Servo myServo;
 float value;
 
 
-// Global variables for the flight controller
+/////////// Global variables for the flight controller /////////////
 PID_t pid;
 
+uint8_t armed = 0;
 uint8_t failsafe_flag = 1;
 uint8_t PID_updated_flag = 0;
 
+// Reciever variables
+SBUS rxsr(Serial2);
+
+uint16_t channels[16];
+bool failSafe;
+bool lostFrame;
 
 
 
@@ -44,9 +52,9 @@ void oneshot_125_init(void){
   TIM3->ARR = 18001; // Initilaises with a 125us oneshot motor pulse (0% Throttle). t_pulse =  (TIMx_ARR - TIMx_CCR1)
 }
 
-void oneshot_125_send(float motor1_output){ // motor1_output E [0, 100]
+void oneshot_125_send(float motor1_output){ // motor1_output E [1000, 2000]
   TIM3->CNT = 0; //Clear counter on TIM3
-  uint16_t m1_val = ((1.0f - 9001.0f)/(100.0f - 0.0f)*(motor1_output - 0.0f) + 9001.0f); //m1_val E [1, 9001] where 1 is 100% motor thrust
+  uint16_t m1_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor1_output - 1000.0f) + 9001.0f); //m1_val E [1, 9001] where 1 is 100% motor thrust
   if(m1_val > 9001){m1_val = 9001;} //ensure the signal is within the output limits
   else if(m1_val < 1){m1_val = 1;}
   TIM3->CCR3 = m1_val;
@@ -69,21 +77,24 @@ void flight_controller(void){
   // Max motor update frequency: 4 kHz
   // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever?
 
-
+  float m1_value;
 
   ////////// Initialisattions ///////////////
   oneshot_125_init();
   USART_init();
   PID_init(&pid);
+  rxsr.begin();
 
   while (1){
     
-
-    if (!failsafe_flag and PID_updated_flag){
+    // look for a good SBUS packet from the receiver
+  if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
+  }
+    if (!failsafe_flag && PID_updated_flag && armed){
       PID_updated_flag = 0;  
       oneshot_125_send(m1_value);
     }  
-    else if(failsafe_flag){
+    else if(failsafe_flag | !armed){
       oneshot_125_send(0.0f);
     }
 
