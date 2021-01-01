@@ -17,13 +17,14 @@ PID_t pid;
 
 uint8_t armed = 0;
 uint8_t failsafe_flag = 1;
-uint8_t PID_updated_flag = 0;
+
 
 // Reciever variables
+HardwareSerial Serial2(USART2);   //activating USART 2
 SBUS rxsr(Serial2);
 
 uint16_t channels[16];
-bool failSafe;
+bool failSafe = 1;
 bool lostFrame;
 
 
@@ -53,6 +54,14 @@ void oneshot_125_init(void){
 }
 
 void oneshot_125_send(float motor1_output){ // motor1_output E [1000, 2000]
+  
+  if(motor1_output < 1000.0f){
+    motor1_output = 1000;
+  }
+  else if(motor1_output > 2000.0f){
+    motor1_output = 2000;
+  }
+
   TIM3->CNT = 0; //Clear counter on TIM3
   uint16_t m1_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor1_output - 1000.0f) + 9001.0f); //m1_val E [1, 9001] where 1 is 100% motor thrust
   if(m1_val > 9001){m1_val = 9001;} //ensure the signal is within the output limits
@@ -77,7 +86,11 @@ void flight_controller(void){
   // Max motor update frequency: 4 kHz
   // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever?
 
-  float m1_value;
+  float m1_value = 0.0f; float m2_value = 0.0f; float m3_value = 0.0f; float m4_value = 0.0f;
+  float throttle = 0.0f;
+  float roll = 1500.0f;
+  float pitch = 1500.0f;
+  float yaw = 1500.0f;
 
   ////////// Initialisattions ///////////////
   oneshot_125_init();
@@ -88,10 +101,41 @@ void flight_controller(void){
   while (1){
     
     // look for a good SBUS packet from the receiver
-  if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
-  }
-    if (!failsafe_flag && PID_updated_flag && armed){
-      PID_updated_flag = 0;  
+    if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
+                              ///////////////////// Change and check for correct channel!!! ////////////////////////
+      throttle = channels[0];
+      roll = channels[1];
+      pitch = channels[2];
+      yaw = channels[3];
+
+      if(channels[4] > 1800){ ///////////////////// Change armed threshold!!! ////////////////////////
+        armed = 1;
+      }
+      else{
+        armed = 0;
+      }
+    }
+
+    if(pid.PID_updated_flag){
+      /*     roll
+              ^       
+         4    -    2    
+              -    
+         -----------> pitch         
+              -           
+         3    -    1     
+
+         up is yaw. Props in configuration.
+      */
+      // Roll, pitch and yaw is derived from the PID controller.
+      m1_value = throttle - roll - pitch 
+      m2_value = throttle
+      m3_value = throttle
+      m4_value = throttle
+    }
+
+    if (!failsafe_flag && pid.PID_updated_flag && armed){
+      pid.PID_updated_flag = 0;  
       oneshot_125_send(m1_value);
     }  
     else if(failsafe_flag | !armed){
@@ -100,9 +144,6 @@ void flight_controller(void){
 
   }
   
-
-
-
 
 }
 

@@ -6,6 +6,7 @@
 #include "stm32f1xx.h"
 
 volatile uint8_t count_interrupts = 0;
+static uint8_t PID_updated_flag = 0;
 
 void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample time T
 
@@ -52,6 +53,7 @@ void PID_init(PID_t* pid){
     pid->prev_reference = 0.0f;
 	pid->i_term = 0.0f;
 	pid->d_term = 0.0f;
+	pid->PID_updated_flag = 0;
 	
 	pid->u = 0.0f;
 
@@ -121,9 +123,10 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 	else{
 		DACC->DACC_CDR = abs(pid->u);
 	} */
+
 }
 
-void TIM2_IRQHandler(void){ //TIM2 global handler
+void TIM2_IRQHandler(void){ //PID timer, TIM2 global handler
 	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
 	TIM2->SR &= ~TIM_SR_UIF;
 } 

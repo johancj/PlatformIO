@@ -22,6 +22,7 @@ typedef struct
     float prev_reference;
 	float i_term;
 	float d_term;
+	uint8_t PID_updated_flag;
 	
 	// output clamping
 	float lim_max_output;
