@@ -10,7 +10,13 @@
 Servo myServo;
 float value;
 
+
+// Global variables for the flight controller
 PID_t pid;
+
+uint8_t failsafe_flag = 1;
+uint8_t PID_updated_flag = 0;
+
 
 
 
@@ -57,6 +63,36 @@ void test_one_shot(void){
     value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
     oneshot_125_send(value);
   }
+}
+
+void flight_controller(void){
+  // Max motor update frequency: 4 kHz
+  // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever?
+
+
+
+  ////////// Initialisattions ///////////////
+  oneshot_125_init();
+  USART_init();
+  PID_init(&pid);
+
+  while (1){
+    
+
+    if (!failsafe_flag and PID_updated_flag){
+      PID_updated_flag = 0;  
+      oneshot_125_send(m1_value);
+    }  
+    else if(failsafe_flag){
+      oneshot_125_send(0.0f);
+    }
+
+  }
+  
+
+
+
+
 }
 
 void setup() {
