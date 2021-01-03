@@ -38,10 +38,10 @@ void PID_init(PID_t* pid){
     pid->Kd = 0.0f;
 
     // Sample time
-    pid->T = 0.03f; // seconds
+    pid->T = 0.01f; // seconds
 
-    // output static clamping
-	pid->lim_max_output = 40.0f;
+    // Output static clamping
+	pid->lim_max_output = 400.0f;
 	pid->lim_min_output = - pid->lim_max_output;
 
     // Integrator static clamping
@@ -124,6 +124,7 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 		DACC->DACC_CDR = abs(pid->u);
 	} */
 
+	pid->PID_updated_flag = 1;
 }
 
 void TIM2_IRQHandler(void){ //PID timer, TIM2 global handler

@@ -86,7 +86,7 @@ void flight_controller(void){
   // Max motor update frequency: 4 kHz
   // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever?
 
-  float m1_value = 0.0f; float m2_value = 0.0f; float m3_value = 0.0f; float m4_value = 0.0f;
+  float m1_value = 1000.0f; float m2_value = 1000.0f; float m3_value = 1000.0f; float m4_value = 1000.0f;
   float throttle = 0.0f;
   float roll = 1500.0f;
   float pitch = 1500.0f;
@@ -117,29 +117,35 @@ void flight_controller(void){
     }
 
     if(pid.PID_updated_flag){
-      /*     roll
-              ^       
-         4    -    2    
-              -    
-         -----------> pitch         
-              -           
-         3    -    1     
+      /* Definitions of motors and rollpitch and yaw vectors   
 
-         up is yaw. Props in configuration.
+                    roll
+                     ^       
+                4    -    2    
+                     -    
+                -----------> pitch         
+                     -           
+                3    -    1     
+
+                yaw is up. 
+         The propellers are in props-in configuration.
       */
-      // Roll, pitch and yaw is derived from the PID controller.
-      m1_value = throttle - roll - pitch 
-      m2_value = throttle
-      m3_value = throttle
-      m4_value = throttle
+
+      // Roll, pitch and yaw is derived from the PID controller. ///////////////// Nå brukes kun reciever, ikke gyro fra pid controlleren!!! //////////////////
+      m1_value = throttle - roll - pitch - yaw;
+      m2_value = throttle - roll + pitch + yaw;
+      m3_value = throttle + roll - pitch + yaw;
+      m4_value = throttle + roll + pitch - yaw;
     }
 
     if (!failsafe_flag && pid.PID_updated_flag && armed){
       pid.PID_updated_flag = 0;  
-      oneshot_125_send(m1_value);
+      //oneshot_125_send(m1_value, m2_value, m3_value, m4_value);
+      printf("Run motors! \n\r");
     }  
     else if(failsafe_flag | !armed){
-      oneshot_125_send(0.0f);
+      //oneshot_125_send(0.0f, 0.0f, 0.0f, 0.0f);
+      printf("Stop motors! \n\r");
     }
 
   }
