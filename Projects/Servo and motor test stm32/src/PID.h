@@ -3,38 +3,46 @@
 
 #include <stdint.h>
 
-typedef struct
-{
-    // PID controller gains
+typedef struct{ 
+	
+
+	float target; // Target rotation-rate in degrees per second
+	float reference; // Reference rotation-rate in degrees per second
+	
+	// PID controller gains for a single axis
 	float Kp; //Proportional factor
 	float Ki; //Integral factor
 	float Kd; //Derivative factor
-
-	// Sample time
-	float T; // In seconds
-	
-	// Integrator limits
-	float lim_max_int;
-	float lim_min_int;
 	
 	// memory
 	float prev_error;
     float prev_reference;
 	float i_term;
-	float d_term;
-	uint8_t PID_updated_flag;
-	
-	// output clamping
-	float lim_max_output;
-	float lim_min_output;
-	
-	float u;
 
-} PID_t;
+	float output;
+} axis_t; // Independent values for each axis
+
+typedef struct
+{
+	axis_t roll; 
+	axis_t pitch; 
+	axis_t yaw;
+	
+	float T; // Sample time in seconds
+	
+	float lim_max_int; // Integrator max limit
+	float lim_min_int; // Integrator min limit
+	
+	float lim_max_output; // output max clamping
+	float lim_min_output; // output min clamping
+
+	uint8_t pid_updated_flag;
+
+} PID_t; // All values for needed for the PID controler, for all axis
 
 
 void PID_init(PID_t* pid);
 
-void PID_update(PID_t* pid, int16_t reference, int16_t target);
+void PID_update(PID_t* pid);
 
 #endif //PID.h

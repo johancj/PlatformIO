@@ -1,12 +1,13 @@
 #include <stdio.h>
+//#include <stdlib.h> // for abs()
 
 #include "PID.h"
 #include "USART.h"
 
 #include "stm32f1xx.h"
 
-volatile uint8_t count_interrupts = 0;
-static uint8_t PID_updated_flag = 0;
+
+
 
 void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample time T
 
@@ -32,44 +33,70 @@ void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample ti
 }
 
 void PID_init(PID_t* pid){
-    // PID controller gains
-    pid->Kp = 1.0f;
-    pid->Ki = 0.0f;
-    pid->Kd = 0.0f;
+
+	pid->roll.target = 0.0f; 
+	pid->pitch.target = 0.0f; 
+	pid->yaw.target = 0.0f; 
+
+
+    // PID controller gains for all axis
+    pid->roll.Kp = 1.0f;
+    pid->roll.Ki = 0.0f;
+    pid->roll.Kd = 0.0f;
+
+	pid->pitch.Kp = 1.0f;
+    pid->pitch.Ki = 0.0f;
+    pid->pitch.Kd = 0.0f;
+
+	pid->yaw.Kp = 1.0f;
+    pid->yaw.Ki = 0.0f;
+    pid->yaw.Kd = 0.0f;
 
     // Sample time
     pid->T = 0.01f; // seconds
 
     // Output static clamping
-	pid->lim_max_output = 400.0f;
+	pid->lim_max_output = 300.0f;
 	pid->lim_min_output = - pid->lim_max_output;
 
     // Integrator static clamping
 	pid->lim_max_int = pid->lim_max_output;
 	pid->lim_min_int = pid->lim_min_output;
 	
-	// clear memory
-	pid->prev_error = 0.0f;
-    pid->prev_reference = 0.0f;
-	pid->i_term = 0.0f;
-	pid->d_term = 0.0f;
-	pid->PID_updated_flag = 0;
+	// clear memory for all axis
+	pid->roll.prev_error = 0.0f; 
+	pid->roll.prev_reference = 0.0f; 
+	pid->roll.i_term = 0.0f; 
+
+	pid->pitch.prev_error = 0.0f; 
+	pid->pitch.prev_reference = 0.0f; 
+	pid->pitch.i_term = 0.0f; 
+
+	pid->yaw.prev_error = 0.0f;
+    pid->yaw.prev_reference = 0.0f;
+	pid->yaw.i_term = 0.0f; 
+
+	// The PID controller has not been run yet
+	pid->pid_updated_flag = 0;
 	
-	pid->u = 0.0f;
+	pid->roll.output = 0.0f; 
+	pid->pitch.output = 0.0f; 
+	pid->yaw.output = 0.0f;
 
 	PID_timer_init();
 }
 
-void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MCP6050) and target (controller) are rotation rate
-    
-    float error = target - reference;
+void PID_update_axis(axis_t* axis, PID_t* pid){  //////////////////// PID controller for one of the axis /////////////////////
+    //reference (MCP6050) and target (controller) are rotation rate in degrees per second
+	
+    float error = axis->target - axis->reference;
 	
 	// Calculate P-term
-	float p_term = pid->Kp * error;
+	float p_term = axis->Kp * error;
 
 	
 	// Calculate I-term
-	pid->i_term = pid->i_term + 0.5f * pid->Ki * pid->T * (error + pid->prev_error);
+	axis->i_term = axis->i_term + 0.5f * axis->Ki * pid->T * (error + axis->prev_error);
 	
 	//Dynamically adjust i-term clamping limit
 	if ((pid->lim_max_output - p_term) > 0){
@@ -78,6 +105,7 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 	else{
 		pid->lim_max_int = 0;
 	}
+
 	if ((pid->lim_min_output - p_term) < 0){
 		pid->lim_min_int = pid->lim_min_output - p_term;
 	}
@@ -86,48 +114,41 @@ void PID_update(PID_t* pid, int16_t reference, int16_t target){  //reference (MC
 	}
 	
 	// Anti i-term wind-up using dynamic clamping
-	if(pid->i_term > pid->lim_max_int){
-		pid->i_term = pid->lim_max_int;
+	if(axis->i_term > pid->lim_max_int){
+		axis->i_term = pid->lim_max_int;
 	}
-	else if(pid->i_term < pid->lim_min_int){
-		pid->i_term = pid->lim_min_int;
+	else if(axis->i_term < pid->lim_min_int){
+		axis->i_term = pid->lim_min_int;
 	}
 	
 	
 	// Calculate derivative term
-	pid->d_term = pid->Kd / pid->T * (error - pid->prev_error);
-	//pid->d_term = pid->Kd / pid->T * (reference - pid->prev_reference); // Using reference for PID to reduce step function effect from target
+	//float d_term = axis->Kd / pid->T * (error - axis->prev_error);
+	float d_term = axis->Kd / pid->T * (axis->reference - axis->prev_reference); // Using reference for PID to reduce step function effect from change in target
 	
 	// PID output
-	pid->u = (p_term + pid->i_term + pid->d_term);
+	axis->output = (p_term + axis->i_term + d_term);
 	
 	// Update memory
-	pid->prev_error = error;
-    pid->prev_reference = reference;
+	axis->prev_error = error;
+    axis->prev_reference = axis->reference;
 	
-	
- /*	if (pid->u > 0){
-		PIOD->PIO_CODR |= PIO_SODR_P10; //Motor direction:0
-	}
-	else{
-		PIOD->PIO_SODR |= PIO_SODR_P10; //Motor direction:1
-	}
 	
 	// PID output and clamping
-	if (pid->u > pid->lim_max_output){ 
-		DACC->DACC_CDR = abs(pid->lim_max_output);
+	if (axis->output > pid->lim_max_output){ 
+		axis->output = pid->lim_max_output;
 	}
-	else if (pid->u < pid->lim_min_output){
-		DACC->DACC_CDR = abs(pid->lim_min_output);
+	else if (axis->output < pid->lim_min_output){
+		axis->output = pid->lim_min_output;
 	}
-	else{
-		DACC->DACC_CDR = abs(pid->u);
-	} */
 
-	pid->PID_updated_flag = 1;
+	pid->pid_updated_flag = 1;
+} 
+
+void PID_update(PID_t* pid){  //reference (MCP6050) and target (controller) are rotation rate
+	PID_update_axis(&pid->roll, pid);
+	PID_update_axis(&pid->pitch, pid);
+	PID_update_axis(&pid->yaw, pid);
+
 }
 
-void TIM2_IRQHandler(void){ //PID timer, TIM2 global handler
-	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
-	TIM2->SR &= ~TIM_SR_UIF;
-} 

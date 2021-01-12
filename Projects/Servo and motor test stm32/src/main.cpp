@@ -6,6 +6,7 @@
 #include "PID.h"
 #include "USART.h"
 #include "SBUS.h"
+#include "receiver.h"
 
 
 Servo myServo;
@@ -13,11 +14,11 @@ float value;
 
 
 /////////// Global variables for the flight controller /////////////
-PID_t pid;
+PID_t pid; // all PID values
 
 uint8_t armed = 0;
-uint8_t failsafe_flag = 1;
 
+volatile uint8_t count_interrupts = 0; // For testing only
 
 // Reciever variables
 HardwareSerial Serial2(USART2);   //activating USART 2
@@ -27,7 +28,11 @@ uint16_t channels[16];
 bool failSafe = 1;
 bool lostFrame;
 
+receiver_t receiver;
 
+// motor variables
+float motor_max_clamping = 2000.0f;
+float motor_min_clamping = 1000.0f;
 
 void oneshot_125_init(void){
   // Enable peripheral clocks
@@ -71,6 +76,73 @@ void oneshot_125_send(float motor1_output){ // motor1_output E [1000, 2000]
   TIM3->CR1 |= TIM_CR1_CEN; // Enable TIM3 (all motors output)
 }
 
+void set_motor_speed(float motor1_output, float motor2_output, float motor3_output, float motor4_output, uint8_t stop_motors){ // motorx_output E [1000, 2000]
+  
+  ///////////////// Clamping motor values to be in a leagal range ///////////////////////////
+  if(motor1_output < motor_min_clamping){
+    motor1_output = motor_min_clamping;
+  }
+  else if(motor1_output > motor_max_clamping){
+    motor1_output = motor_max_clamping;
+  }
+  
+  if(motor2_output < motor_min_clamping){
+    motor2_output = motor_min_clamping;
+  }
+  else if(motor2_output > motor_max_clamping){
+    motor2_output = motor_max_clamping;
+  }
+
+  if(motor3_output < motor_min_clamping){
+    motor3_output = motor_min_clamping;
+  }
+  else if(motor3_output > motor_max_clamping){
+    motor3_output = motor_max_clamping;
+  }
+
+  if(motor4_output < motor_min_clamping){
+    motor4_output = motor_min_clamping;
+  }
+  else if(motor4_output > motor_max_clamping){
+    motor4_output = motor_max_clamping;
+  }
+
+  // Checking if the motors should stop
+  if(stop_motors){
+    motor1_output = 1000.0f;
+    motor2_output = 1000.0f;
+    motor3_output = 1000.0f;
+    motor4_output = 1000.0f;
+  }
+
+  
+  uint16_t m1_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor1_output - 1000.0f) + 9001.0f); //m1_val E [1, 9001] where 1 is 100% motor thrust
+  if(m1_val > 9001){m1_val = 9001;} //ensure the signal is within the output limits
+  else if(m1_val < 1){m1_val = 1;}
+
+  uint16_t m2_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor2_output - 1000.0f) + 9001.0f); //m2_val E [1, 9001] where 1 is 100% motor thrust
+  if(m2_val > 9001){m2_val = 9001;} //ensure the signal is within the output limits
+  else if(m2_val < 1){m2_val = 1;}
+
+  uint16_t m3_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor3_output - 1000.0f) + 9001.0f); //m3_val E [1, 9001] where 1 is 100% motor thrust
+  if(m3_val > 9001){m3_val = 9001;} //ensure the signal is within the output limits
+  else if(m3_val < 1){m3_val = 1;}
+
+  uint16_t m4_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor4_output - 1000.0f) + 9001.0f); //m4_val E [1, 9001] where 1 is 100% motor thrust
+  if(m4_val > 9001){m4_val = 9001;} //ensure the signal is within the output limits
+  else if(m4_val < 1){m4_val = 1;}
+  
+  
+  TIM3->CNT = 0; //Clear counter for TIM3
+  // Sets one_shot_125 values in the registers
+  TIM3->CCR1 = m1_val;
+  TIM3->CCR2 = m2_val;
+  TIM3->CCR3 = m3_val;
+  TIM3->CCR4 = m4_val;
+  
+  TIM3->CR1 |= TIM_CR1_CEN; // Enable TIM3 (all motors output)
+}
+
 void test_one_shot(void){
   pinMode(PA0, INPUT_PULLUP);
   USART_init();
@@ -87,26 +159,24 @@ void flight_controller(void){
   // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever?
 
   float m1_value = 1000.0f; float m2_value = 1000.0f; float m3_value = 1000.0f; float m4_value = 1000.0f;
-  float throttle = 0.0f;
-  float roll = 1500.0f;
-  float pitch = 1500.0f;
-  float yaw = 1500.0f;
+  
 
   ////////// Initialisattions ///////////////
   oneshot_125_init();
   USART_init();
   PID_init(&pid);
   rxsr.begin();
+  receiver_init(&receiver);
 
   while (1){
     
     // look for a good SBUS packet from the receiver
     if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
                               ///////////////////// Change and check for correct channel!!! ////////////////////////
-      throttle = channels[0];
-      roll = channels[1];
-      pitch = channels[2];
-      yaw = channels[3];
+      receiver.throttle = channels[0];
+      receiver.roll = channels[1];
+      receiver.pitch = channels[2];
+      receiver.yaw = channels[3];
 
       if(channels[4] > 1800){ ///////////////////// Change armed threshold!!! ////////////////////////
         armed = 1;
@@ -114,9 +184,19 @@ void flight_controller(void){
       else{
         armed = 0;
       }
+
+      if(failSafe | !armed){
+        //set_motor_speed(0.0f, 0.0f, 0.0f, 0.0f, 1);
+        printf("Stop motors! \n\r");
+
+        pid.pid_updated_flag = 0; 
+      }
+      update_target_vals(&pid, &receiver);
     }
 
-    if(pid.PID_updated_flag){
+    if(pid.pid_updated_flag && armed){
+      pid.pid_updated_flag = 0;
+      
       /* Definitions of motors and rollpitch and yaw vectors   
 
                     roll
@@ -130,23 +210,27 @@ void flight_controller(void){
                 yaw is up. 
          The propellers are in props-in configuration.
       */
+      
 
-      // Roll, pitch and yaw is derived from the PID controller. ///////////////// Nå brukes kun reciever, ikke gyro fra pid controlleren!!! //////////////////
-      m1_value = throttle - roll - pitch - yaw;
-      m2_value = throttle - roll + pitch + yaw;
-      m3_value = throttle + roll - pitch + yaw;
-      m4_value = throttle + roll + pitch - yaw;
+      // Roll, pitch and yaw is derived from the PID controller.       
+      m1_value = receiver.throttle - pid.roll.output - pid.pitch.output - pid.yaw.output;
+      m2_value = receiver.throttle - pid.roll.output + pid.pitch.output + pid.yaw.output;
+      m3_value = receiver.throttle + pid.roll.output - pid.pitch.output + pid.yaw.output;
+      m4_value = receiver.throttle + pid.roll.output + pid.pitch.output - pid.yaw.output;
+      
+      if (!failSafe && armed){ //Send motor commands
+        //set_motor_speed(m1_value, m2_value, m3_value, m4_value, 0);
+        printf("Run motors! \n\r");
+        pid.pid_updated_flag = 0; 
+      }  
     }
 
-    if (!failsafe_flag && pid.PID_updated_flag && armed){
-      pid.PID_updated_flag = 0;  
-      //oneshot_125_send(m1_value, m2_value, m3_value, m4_value);
-      printf("Run motors! \n\r");
-    }  
-    else if(failsafe_flag | !armed){
-      //oneshot_125_send(0.0f, 0.0f, 0.0f, 0.0f);
+    if(failSafe | !armed){
+      //set_motor_speed(0.0f, 0.0f, 0.0f, 0.0f, 1);
       printf("Stop motors! \n\r");
+      pid.pid_updated_flag = 0; 
     }
+    
 
   }
   
@@ -176,3 +260,9 @@ void loop() {
   myprintf("TIM2 CNT %d \n\r", TIM2->CNT);
   //delay(18);
 }  
+
+void TIM2_IRQHandler(void){ //PID timer, TIM2 global handler
+	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
+	//PID_update(&pid);
+	TIM2->SR &= ~TIM_SR_UIF; // clear update interrupt flag
+} 
