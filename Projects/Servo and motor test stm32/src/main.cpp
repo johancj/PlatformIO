@@ -12,13 +12,25 @@
 Servo myServo;
 float value;
 
+/////////// Timers and pins overview /////////////
+/*
+TIM3: Motor output
+  - PA0 to PA3
+TIM2: PID controller interrupt on overflow (100Hz)
+TIM4: read receiver interrupt on compare 1 register (25Hz)
+      read LiPo battery voltage interrupt on overflow (25Hz)    
+        - PA4 for ADC4
+*/
 
 /////////// Global variables for the flight controller /////////////
 PID_t pid; // all PID values
 
 uint8_t armed = 0;
 
-volatile uint8_t count_interrupts = 0; // For testing only
+volatile uint8_t count_interrupts_PID = 0; // For testing only
+volatile uint8_t count_interrupts_reciever = 0; // For testing only
+
+volatile uint16_t adc_val_raw = 0;
 
 // Reciever variables
 HardwareSerial Serial2(USART2);   //activating USART 2
@@ -29,6 +41,8 @@ bool failSafe = 1;
 bool lostFrame;
 
 receiver_t receiver;
+
+volatile uint8_t read_receiver_flag = 1;
 
 // motor variables
 float motor_max_clamping = 2000.0f;
@@ -154,11 +168,46 @@ void test_one_shot(void){
   }
 }
 
+void battery_read_init(void){
+  
+  // Set ADC pheripheral clock to sys_clk / 6 = 12MHz (max 14MHz)
+  RCC->CFGR |= RCC_CFGR_ADCPRE_DIV6;
+
+  //Enable adc- and GPIOA pheripheral clock
+  RCC->APB2ENR |= RCC_APB2ENR_ADC1EN | RCC_APB2ENR_IOPAEN; 
+
+  // Set PA4 as input with pull-down resistor
+  GPIOA->CRL &= ~(GPIO_CRL_MODE4 | GPIO_CRL_CNF4_0);
+  GPIOA->CRL |= GPIO_CRL_CNF4_1;
+  GPIOA->ODR &= ~GPIO_ODR_ODR4;
+
+  // Enable end of convertion interrupt
+  ADC1->CR1 |= ADC_CR1_EOCIE;
+  NVIC_EnableIRQ(ADC1_IRQn);
+
+  ADC1->SMPR2 |= ADC_SMPR2_SMP4; // Sample time selection
+  ADC1->SQR1 &= ~ADC_SQR1_L; // 1 convertion only
+  ADC1->SQR3 = (4 << ADC_SQR3_SQ1_Pos); // Use ADC channel 4 (PA4)
+
+  ADC1->CR2 |= ADC_CR2_CONT | ADC_CR2_ADON;
+
+  delay(1);
+
+  // Actually turn on adc (needs to be turned on twise)
+  ADC1->CR2 |= ADC_CR2_ADON;
+  delay(1);
+
+  ADC1->CR2 |= ADC_CR2_CAL;
+  while(ADC1->CR2 & ADC_CR2_CAL_Msk);
+
+}
+
 void flight_controller(void){
   // Max motor update frequency: 4 kHz
-  // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever?
+  // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever and battery voltage(25Hz)
 
   float m1_value = 1000.0f; float m2_value = 1000.0f; float m3_value = 1000.0f; float m4_value = 1000.0f;
+  
   
 
   ////////// Initialisattions ///////////////
@@ -169,30 +218,35 @@ void flight_controller(void){
   receiver_init(&receiver);
 
   while (1){
-    
-    // look for a good SBUS packet from the receiver
-    if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
-                              ///////////////////// Change and check for correct channel!!! ////////////////////////
-      receiver.throttle = channels[0];
-      receiver.roll = channels[1];
-      receiver.pitch = channels[2];
-      receiver.yaw = channels[3];
 
-      if(channels[4] > 1800){ ///////////////////// Change armed threshold!!! ////////////////////////
-        armed = 1;
-      }
-      else{
-        armed = 0;
-      }
+    if(read_receiver_flag){
+      // look for a good SBUS packet from the receiver
+      if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
 
-      if(failSafe | !armed){
-        //set_motor_speed(0.0f, 0.0f, 0.0f, 0.0f, 1);
-        printf("Stop motors! \n\r");
+        read_receiver_flag = 0;
+                                ///////////////////// Change and check for correct channel!!! ////////////////////////
+        receiver.throttle = channels[0];
+        receiver.roll = channels[1];
+        receiver.pitch = channels[2];
+        receiver.yaw = channels[3];
 
-        pid.pid_updated_flag = 0; 
+        if(channels[4] > 1800){ ///////////////////// Change armed threshold!!! ////////////////////////
+          armed = 1;
+        }
+        else{
+          armed = 0;
+        }
+
+        if(failSafe | !armed){
+          //set_motor_speed(0.0f, 0.0f, 0.0f, 0.0f, 1);
+          printf("Stop motors! \n\r");
+
+          pid.pid_updated_flag = 0; 
+        }
+        update_target_vals(&pid, &receiver);
       }
-      update_target_vals(&pid, &receiver);
     }
+    
 
     if(pid.pid_updated_flag && armed){
       pid.pid_updated_flag = 0;
@@ -211,7 +265,6 @@ void flight_controller(void){
          The propellers are in props-in configuration.
       */
       
-
       // Roll, pitch and yaw is derived from the PID controller.       
       m1_value = receiver.throttle - pid.roll.output - pid.pitch.output - pid.yaw.output;
       m2_value = receiver.throttle - pid.roll.output + pid.pitch.output + pid.yaw.output;
@@ -261,8 +314,24 @@ void loop() {
   //delay(18);
 }  
 
-void TIM2_IRQHandler(void){ //PID timer, TIM2 global handler
-	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts++);
+void TIM2_IRQHandler(void){ //PID timer(100Hz), TIM2 global handler
+	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts_PID++);
 	//PID_update(&pid);
 	TIM2->SR &= ~TIM_SR_UIF; // clear update interrupt flag
 } 
+
+void TIM4_IRQHandler(void){ //receiver and battery read (25Hz), TIM4 global handler
+	myprintf("TIM4_IRQHandler #%d\n\r", count_interrupts_reciever++);
+  read_receiver_flag = 1;
+	TIM4->SR &= ~TIM_SR_UIF; // clear update interrupt flag
+} 
+
+void ADC1_2_IRQHandler(void){
+  // Check if we are here due to the end of convertion flag
+  // Clear the flag by reading the data register
+  if(ADC1->SR & ADC_SR_EOC){
+    adc_val_raw = ADC1->DR;
+  }
+}
+
+

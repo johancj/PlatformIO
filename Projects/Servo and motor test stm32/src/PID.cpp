@@ -23,7 +23,7 @@ void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample ti
 	TIM2->PSC = 72 - 1; // Provides the counter clock frequency CK_CNT; fCK_PSC / (PSC[15:0] + 1) = 1MHz counter on TIM2.
 	TIM2->ARR = 10000 - 1; //Overflow with 1MHz/(ARR + 1) = 100Hz 			
 
-	TIM2->EGR |= TIM_EGR_UG; //UG: update generation ////////////Mulig denne må settes senere i initialiseringen. ////////////
+	TIM2->EGR |= TIM_EGR_UG; //UG: update generation 					////////////Mulig denne må settes senere i initialiseringen. ////////////
 	TIM2->DIER |= TIM_DIER_UIE; // Update interrupt enable
 
 	NVIC_EnableIRQ(TIM2_IRQn); 
