@@ -9,13 +9,24 @@ long t;
 
 int k = 0;
 
+void MPU6050_setup();
+void read_MPU6050_data();
+
+
+
 void setup()
 {
   Serial.begin(115200);
+  delay(3000);
+  Serial.println("Check 0");
+  delay(20);
   Wire.setClock(400000);
+  delay(500);
+  Serial.println("Check 1");
   Wire.begin();
+  
   delay(250);
-
+  Serial.println("Check 2");
   MPU6050_setup();
 
   delay(500);
@@ -35,6 +46,7 @@ void setup()
   gyroRawCal[1] /= 2000;
   gyroRawCal[2] /= 2000;
 }
+
 
 void loop()
 {
