@@ -8,7 +8,7 @@
 #include "SBUS.h"
 #include "receiver.h"
 
-
+// Testing only
 Servo myServo;
 float value;
 
@@ -16,18 +16,25 @@ float value;
 /*
 TIM3: Motor output
   - PA0 to PA3
-TIM2: PID controller interrupt on overflow (100Hz)
+TIM2: PID controller interrupt on overflow (100Hz) (Probably need 1kHz. Max gyro update is 400Hz???)
 TIM4: read receiver interrupt on compare 1 register (25Hz)
       read LiPo battery voltage interrupt on overflow (25Hz)    
         - PA4 for ADC4
 
-Controller input
- - P
+Reciever SBUS input (USART3)
+ - PB11 (RX3)
+
+Programming pins(USART1)
+  - PA9 (TX1)
+  - PA10 (RX1)
+
+Gyro and accelerometer (using I2C1)
+  - PB6 (SCL1)
+  - PB7 (SDA1)
 
 Test Pins
   - PA5: analog input of potentiometer
-  - 
-
+  - PA7: Digital output for testing of i.e. loop times with ocilloscope
 */
 
 /////////// Global variables for the flight controller /////////////
@@ -41,8 +48,8 @@ volatile uint8_t count_interrupts_reciever = 0; // For testing only
 volatile uint16_t adc_val_raw = 0;
 
 // Reciever variables
-HardwareSerial Serial2(USART2);   //activating USART 2
-SBUS rxsr(Serial2);
+HardwareSerial Serial3(USART3);   //activating USART 3
+SBUS rxsr(Serial3);
 
 uint16_t channels[16];
 bool failSafe = 1;
@@ -227,8 +234,7 @@ void flight_controller(void){
 
   while (1){
 
-    if(read_receiver_flag){
-      // look for a good SBUS packet from the receiver
+    if(read_receiver_flag){ // look for a good SBUS packet from the receiver
       if(rxsr.read(&channels[0], &failSafe, &lostFrame)){
 
         read_receiver_flag = 0;
@@ -299,7 +305,7 @@ void flight_controller(void){
 }
 
 void setup() {
-  pinMode(PA0, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
   //myServo.attach(PA6);
   //Serial1.begin(9600);
   oneshot_125_init();
@@ -309,7 +315,7 @@ void setup() {
 }
 
 void loop() {
-  value = analogRead(PA0);
+  value = analogRead(PA5);
   value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
   //value = (uint16_t) ((2000.0f - 900.0f)/(1000.0f)*((float)value) + 900.0f);
   //value = map(value, 0, 1000, 900, 2000);

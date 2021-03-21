@@ -1,13 +1,11 @@
 #include <Arduino.h>
 #include"SBUS.h"
 
-HardwareSerial Serial2(USART2);   //activating USART 2
+HardwareSerial Serial2(USART3);   //activating USART 2
 
-SBUS rxsr(Serial2);
+SBUS rxsr(Serial3);
 
-//GPIOA->BSRR = 0x00000000;
 
-GPIOD->BSRR = 0x00000001;
 
 // channel, fail safe, and lost frames data
 uint16_t channels[16];
