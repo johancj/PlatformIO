@@ -20,6 +20,14 @@ TIM2: PID controller interrupt on overflow (100Hz)
 TIM4: read receiver interrupt on compare 1 register (25Hz)
       read LiPo battery voltage interrupt on overflow (25Hz)    
         - PA4 for ADC4
+
+Controller input
+ - P
+
+Test Pins
+  - PA5: analog input of potentiometer
+  - 
+
 */
 
 /////////// Global variables for the flight controller /////////////
@@ -158,11 +166,11 @@ void set_motor_speed(float motor1_output, float motor2_output, float motor3_outp
 }
 
 void test_one_shot(void){
-  pinMode(PA0, INPUT_PULLUP);
+  pinMode(PA5, INPUT_PULLUP);
   USART_init();
   oneshot_125_init();
   while(1){
-    value = analogRead(PA0);
+    value = analogRead(PA5);
     value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
     oneshot_125_send(value);
   }
