@@ -328,6 +328,9 @@ void loop() {
   //delay(18);
 }  
 
+
+// You find interrupt handler names in "stm32f103xb.h". Just ass "Handler" after "IRQ"!
+
 void TIM2_IRQHandler(void){ //PID timer(100Hz), TIM2 global handler
 	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts_PID++);
 	//PID_update(&pid);

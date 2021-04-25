@@ -12,7 +12,7 @@ int k = 0;
 void MPU6050_setup();
 void read_MPU6050_data();
 
-
+TwoWire Wire = TwoWire();
 
 void setup()
 {
