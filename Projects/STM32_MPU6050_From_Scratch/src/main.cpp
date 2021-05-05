@@ -14,7 +14,7 @@ void I2C_write(uint8_t device_address, uint8_t register_start_address, uint8_t d
     delay(1);
 
     //Send device adress
-    I2C1->DR = device_address;
+    I2C1->DR = device_address << 1;
     while(!(I2C1->SR1 & I2C_SR1_ADDR_Msk)){} // Wait for sent device address
     //I2C1->SR2;
     garbage = I2C1->SR2;

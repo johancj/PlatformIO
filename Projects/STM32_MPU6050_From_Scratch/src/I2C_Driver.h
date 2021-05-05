@@ -1,7 +1,7 @@
 #ifndef I2C_DRIVER_H
 #define I2C_DRIVER_H
 
-#define MPU6050_ADDRESS 0x68
+#define MPU6050_ADDRESS 0x68 // 7 bit device address
 
 extern uint8_t mpu6050_raw_data[2];
 
