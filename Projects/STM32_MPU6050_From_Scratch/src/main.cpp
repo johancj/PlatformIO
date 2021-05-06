@@ -6,7 +6,10 @@ int16_t x_val = 0;
 
 void I2C_write(uint8_t device_address, uint8_t register_start_address, uint8_t data){
     
+    Serial1.println("0...");
+    delay(1);
     uint32_t garbage = 0;
+    
     //Start condition
     I2C1->CR1 |= I2C_CR1_START;
     while(!(I2C1->SR1 & I2C_SR1_SB_Msk)){} // Check for sent start condition
@@ -14,7 +17,7 @@ void I2C_write(uint8_t device_address, uint8_t register_start_address, uint8_t d
     delay(1);
 
     //Send device adress
-    I2C1->DR = device_address << 1;
+    I2C1->DR = device_address;
     while(!(I2C1->SR1 & I2C_SR1_ADDR_Msk)){} // Wait for sent device address
     //I2C1->SR2;
     garbage = I2C1->SR2;
