@@ -188,10 +188,10 @@
 #define MPU6050_GCONFIG_FS_SEL_BIT      4
 #define MPU6050_GCONFIG_FS_SEL_LENGTH   2
 
-#define MPU6050_GYRO_FS_250         0x00
-#define MPU6050_GYRO_FS_500         0x01
-#define MPU6050_GYRO_FS_1000        0x02
-#define MPU6050_GYRO_FS_2000        0x03
+#define MPU6050_GYRO_FS_250         (0x00 << 3)
+#define MPU6050_GYRO_FS_500         (0x01 << 3)
+#define MPU6050_GYRO_FS_1000        (0x02 << 3)
+#define MPU6050_GYRO_FS_2000        (0x03 << 3)
 
 #define MPU6050_ACONFIG_XA_ST_BIT           7
 #define MPU6050_ACONFIG_YA_ST_BIT           6

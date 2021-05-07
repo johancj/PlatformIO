@@ -33,7 +33,6 @@ void I2C_init(void){
 
     PE needs to be 0 for the following to work.
     */
-    I2C1->CCR = 0;
     I2C1->CCR |= (I2C_CCR_FS) | (30 << I2C_CCR_CCR_Pos);
     I2C1->TRISE = 37; // 300ns/27.7778ns + 1 = 11.79 = 12. (300ns is max t_rise for MPU6050. generic from MCU datasheet: 1000us gives 37.)
 
