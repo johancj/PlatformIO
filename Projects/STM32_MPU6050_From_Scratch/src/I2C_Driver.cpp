@@ -77,7 +77,7 @@ void I2C_init(void){
 } */
 
 
-void I2C_read(uint8_t device_address, uint8_t register_start_address){
+/* void I2C_read(uint8_t device_address, uint8_t register_start_address){
     
     //uint32_t garbage = 0;
 
@@ -87,25 +87,30 @@ void I2C_read(uint8_t device_address, uint8_t register_start_address){
     DMA1_Channel7->CPAR = (uint32_t)&I2C1->DR;
     DMA1_Channel7->CMAR = (uint32_t)&mpu6050_raw_data;
     DMA1_Channel7->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;
-
+    Serial1.println("r0...");
+    delay(1);
     //Start condition
     I2C1->CR1 |= I2C_CR1_START;
     while(!(I2C1->SR1 & I2C_SR1_SB_Msk)){} // Check for sent start condition
-    
+    Serial1.println("r1...");
+    delay(1);
     //Send device adress
     I2C1->DR = device_address + 1; // +1 because the least significant bit is the data direction bit. 1 is read.
     while(!(I2C1->SR1 & I2C_SR1_ADDR_Msk)){} // Wait for sent device address
     I2C1->SR2;
     //garbage = I2C1->SR2;
-
+    Serial1.println("r2...");
+    delay(1);
     //send internal adress
     I2C1->DR = register_start_address;
     while(!(I2C1->SR1 & I2C_SR1_TXE)){} // Wait for byte transfer complete
-    
+    Serial1.println("r3...");
+    delay(1);
     while((DMA1->ISR & DMA_ISR_TCIF7) == 0);
-
+    Serial1.println("r4...");
+    delay(1);
     I2C1->CR1 |= I2C_CR1_STOP;
-}
+}  */
 
 /* void DMA1_Channel7_IRQHandler(void){
     I2C1->CR1 |= I2C_CR1_STOP;
