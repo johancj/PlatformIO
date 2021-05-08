@@ -19,6 +19,7 @@ void I2C_init(void){
     //DMA init
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;  //Enable DMA clock
     
+    
 
     I2C1->CR2 |= (36 << I2C_CR2_FREQ_Pos); //Defines the I2C clock = APB1 buss clk = 36MHz
 

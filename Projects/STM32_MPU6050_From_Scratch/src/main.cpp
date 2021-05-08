@@ -75,14 +75,14 @@ void I2C_read(uint8_t device_address, uint8_t register_start_address, uint8_t da
     
 
     // DMA things
-    I2C1->CR2 |= I2C_CR2_DMAEN;
-    I2C1->CR1 |= I2C_CR1_ACK;
-    
-    DMA1_Channel7->CPAR = (uint32_t)&I2C1->DR;
-    DMA1_Channel7->CMAR = (uint32_t)&mpu6050_raw_data;
-    DMA1_Channel7->CNDTR = data_length;
+    DMA1_Channel7->CPAR = (uint32_t)&I2C1->DR;            // Peripheral data register address
+    DMA1_Channel7->CMAR = (uint32_t)&mpu6050_raw_data;    // Data address
+    DMA1_Channel7->CNDTR = data_length;                   // Data length
     DMA1_Channel7->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;
-    
+
+    I2C1->CR2 |= I2C_CR2_DMAEN;
+    I2C1->CR2 |= I2C_CR2_LAST;
+    I2C1->CR1 |= I2C_CR1_ACK;
     Serial1.println("r0...");
     delay(1);
 
@@ -99,11 +99,15 @@ void I2C_read(uint8_t device_address, uint8_t register_start_address, uint8_t da
     Serial1.println("r2...");
     delay(1);
     
-    while((DMA1->ISR & DMA_ISR_TCIF7) == 0);
+    while((DMA1->ISR & DMA_ISR_TCIF7) == 0); // Wait for DMA tranfer conplete (This including the rest should be done using interrupt service routine)
     Serial1.println("r4...");
     delay(1);
-    I2C1->CR1 |= I2C_CR1_STOP;
-    DMA1_Channel7->CCR &= ~DMA_CCR_EN; //Disable DMA for I2C1.
+
+    DMA1_Channel7->CCR &= ~DMA_CCR_EN;  // Disable DMA channel 7
+    DMA1->IFCR |= DMA_IFCR_CTCIF7;      // Clear the DMA transfer complete flag
+
+    // STOP condition
+    I2C1->CR1 |= I2C_CR1_STOP;          
 } 
 
 
@@ -122,21 +126,14 @@ void setup() {
   delay(500);
 
   Serial1.println("Reading the gyro...");
-  delay(1);
-  I2C_read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, 2);
-  
-  delay(1);
-  x_val = (mpu6050_raw_data[0] << 8) | mpu6050_raw_data[1];
-  Serial1.print("x_val = "); Serial1.println(x_val);
-  delay(250);
-  I2C_read(MPU6050_ADDRESS, MPU6050_RA_GYRO_XOUT_L, 2);
-  delay(1);
-  x_val = (mpu6050_raw_data[0] << 8) | mpu6050_raw_data[1];
-  Serial1.print("x_val = "); Serial1.println(x_val);
-  delay(250);
+  delay(2);
+
 }
 
 void loop() {
-  
+  I2C_read(MPU6050_ADDRESS, MPU6050_RA_GYRO_ZOUT_L, 2);
+  x_val = (mpu6050_raw_data[0] << 8) | mpu6050_raw_data[1];
+  Serial1.print("x_val = "); Serial1.println(x_val);
+  delay(250);
 }
 

@@ -32,7 +32,7 @@ void setup() {
 }
 
 void loop() {
-  /* 
+  
   Wire.beginTransmission(0x68);
   Wire.write(0x43);
   Wire.endTransmission();
@@ -47,6 +47,6 @@ void loop() {
   Serial1.print(", Z = ");
   Serial1.println(gyroRaw[2]);
   delay(250);
-   */
+  
 }
 
