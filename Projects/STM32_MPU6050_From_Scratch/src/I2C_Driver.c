@@ -74,7 +74,7 @@ void I2C_write(uint8_t device_address, uint8_t register_start_address, uint8_t d
 }
 
 
-void I2C_write(uint8_t device_address, uint8_t register_start_address){
+void I2C_write_no_data(uint8_t device_address, uint8_t register_start_address){
       
     //Start condition
     I2C1->CR1 |= I2C_CR1_START;
@@ -97,7 +97,7 @@ void I2C_write(uint8_t device_address, uint8_t register_start_address){
 void I2C_read(uint8_t device_address, uint8_t register_start_address, uint8_t data_length){
     
     // Write to set the internal device pointer at correct place
-    I2C_write(device_address, register_start_address);
+    I2C_write_no_data(device_address, register_start_address);
     
 
     // DMA things
