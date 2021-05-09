@@ -73,7 +73,7 @@ void oneshot_125_init(void){
   GPIOA->CRL &= ~GPIO_CRL_CNF6_0;
 
   // Using TIM3, Channel 1, with One-pulse mode
-  TIM3->CR1 |= TIM_CR1_OPM; //Select One-pulse mode. Counter stops counting at the next update event (clearing the bit CEN).
+  TIM3->CR1 |= TIM_CR1_OPM; // Select One-pulse mode. Counter stops counting at the next update event (clearing the bit CEN).
   TIM3->CR1 &= ~(TIM_CR1_DIR | TIM_CR1_CMS); // Sets TIM3 as up counter
 
   // Configure OC1 as output
@@ -85,6 +85,8 @@ void oneshot_125_init(void){
   TIM3->PSC = 8; // Provides CK_CNT = f_(CK_PSC) / PSC = 72MHz/PSC = 72MHz counter on TIM3.
   TIM3->CCR1 = 9001; // 9000/(72MHz) = 125us delay. Range=[1, 9001] In OPM: t_delay = 1 (The pulse is sendt as soon as poosible, after the pulse is enabled)
   TIM3->ARR = 18001; // Initilaises with a 125us oneshot motor pulse (0% Throttle). t_pulse =  (TIMx_ARR - TIMx_CCR1)
+
+  TIM3->EGR |= TIM_EGR_UG; // Update generation
 }
 
 void oneshot_125_send(float motor1_output){ // motor1_output E [1000, 2000]
@@ -206,11 +208,11 @@ void battery_read_init(void){
 
   ADC1->CR2 |= ADC_CR2_CONT | ADC_CR2_ADON;
 
-  delay(1);
+  delay(5);
 
   // Actually turn on adc (needs to be turned on twise)
   ADC1->CR2 |= ADC_CR2_ADON;
-  delay(1);
+  delay(5);
 
   ADC1->CR2 |= ADC_CR2_CAL;
   while(ADC1->CR2 & ADC_CR2_CAL_Msk);

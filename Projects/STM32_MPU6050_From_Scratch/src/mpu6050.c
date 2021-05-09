@@ -15,7 +15,8 @@ void mpu6050_init(void){
 
     // Set gyroscope sample rate 1kHz (8kHz with averaging should be considered)
 
-    // Low pass filter?
+    // Digital low pass filter with latency is 0.98ms for 256Hz cutoff frequency. 
+    I2C_write(MPU6050_ADDRESS, MPU6050_RA_CONFIG, 0x00);
 
     // Consider need for zero-rate compensation.
 
