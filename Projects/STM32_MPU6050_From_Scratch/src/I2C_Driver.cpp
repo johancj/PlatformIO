@@ -15,11 +15,8 @@ void I2C_init(void){
     RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
     RCC->APB1ENR |= RCC_APB1ENR_I2C1EN; //Enable I2C1 clock
 
-
     //DMA init
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;  //Enable DMA clock
-    
-    
 
     I2C1->CR2 |= (36 << I2C_CR2_FREQ_Pos); //Defines the I2C clock = APB1 buss clk = 36MHz
 
@@ -47,23 +44,23 @@ void I2C_init(void){
     GPIOB->CRL |= GPIO_CRL_CNF6 | GPIO_CRL_CNF7 | GPIO_CRL_MODE6 | GPIO_CRL_MODE7;
 
     I2C1->CR1 |= I2C_CR1_PE; //Enables I2C1 pheripheral. Needs to be done at last.
-
-
 }
 
-/* void I2C_write(uint8_t device_address, uint8_t register_start_address, uint8_t data){
+
+void I2C_write(uint8_t device_address, uint8_t register_start_address, uint8_t data){
     
-    uint32_t garbage = 0;
+     
     //Start condition
     I2C1->CR1 |= I2C_CR1_START;
     while(!(I2C1->SR1 & I2C_SR1_SB_Msk)){} // Check for sent start condition
-    
+
+
     //Send device adress
     I2C1->DR = device_address;
     while(!(I2C1->SR1 & I2C_SR1_ADDR_Msk)){} // Wait for sent device address
     I2C1->SR2;
-    garbage = I2C1->SR2;
-    
+
+
     //send internal adress
     I2C1->DR = register_start_address;
     while(!(I2C1->SR1 & I2C_SR1_TXE)){} // Wait for byte transfer complete
@@ -74,43 +71,64 @@ void I2C_init(void){
 
     //Stop condition
     I2C1->CR1 |= I2C_CR1_STOP;
-} */
+}
 
 
-/* void I2C_read(uint8_t device_address, uint8_t register_start_address){
-    
-    //uint32_t garbage = 0;
-
-    // DMA things
-    I2C1->CR2 |= I2C_CR2_DMAEN;
-    DMA1_Channel7->CNDTR = 2;
-    DMA1_Channel7->CPAR = (uint32_t)&I2C1->DR;
-    DMA1_Channel7->CMAR = (uint32_t)&mpu6050_raw_data;
-    DMA1_Channel7->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;
-    Serial1.println("r0...");
-    delay(1);
+void I2C_write(uint8_t device_address, uint8_t register_start_address){
+      
     //Start condition
     I2C1->CR1 |= I2C_CR1_START;
     while(!(I2C1->SR1 & I2C_SR1_SB_Msk)){} // Check for sent start condition
-    Serial1.println("r1...");
-    delay(1);
+    
+    //Send device adress
+    I2C1->DR = device_address;
+    while(!(I2C1->SR1 & I2C_SR1_ADDR_Msk)){} // Wait for sent device address
+    I2C1->SR2;
+
+    //send internal adress
+    I2C1->DR = register_start_address;
+    while(!(I2C1->SR1 & I2C_SR1_TXE)){} // Wait for byte transfer complete
+
+    //Stop condition
+    I2C1->CR1 |= I2C_CR1_STOP;
+}
+
+
+void I2C_read(uint8_t device_address, uint8_t register_start_address, uint8_t data_length){
+    
+    // Write to set the internal device pointer at correct place
+    I2C_write(device_address, register_start_address);
+    
+
+    // DMA things
+    DMA1_Channel7->CPAR = (uint32_t)&I2C1->DR;            // Peripheral data register address
+    DMA1_Channel7->CMAR = (uint32_t)&mpu6050_raw_data;    // Data address
+    DMA1_Channel7->CNDTR = data_length;                   // Data length
+    DMA1_Channel7->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;
+
+    I2C1->CR2 |= I2C_CR2_DMAEN;
+    I2C1->CR2 |= I2C_CR2_LAST;
+    I2C1->CR1 |= I2C_CR1_ACK;
+
+    //Start condition
+    I2C1->CR1 |= I2C_CR1_START;
+    while(!(I2C1->SR1 & I2C_SR1_SB_Msk)){} // Check for sent start condition
+
     //Send device adress
     I2C1->DR = device_address + 1; // +1 because the least significant bit is the data direction bit. 1 is read.
     while(!(I2C1->SR1 & I2C_SR1_ADDR_Msk)){} // Wait for sent device address
     I2C1->SR2;
-    //garbage = I2C1->SR2;
-    Serial1.println("r2...");
-    delay(1);
-    //send internal adress
-    I2C1->DR = register_start_address;
-    while(!(I2C1->SR1 & I2C_SR1_TXE)){} // Wait for byte transfer complete
-    Serial1.println("r3...");
-    delay(1);
-    while((DMA1->ISR & DMA_ISR_TCIF7) == 0);
-    Serial1.println("r4...");
-    delay(1);
-    I2C1->CR1 |= I2C_CR1_STOP;
-}  */
+
+
+    while((DMA1->ISR & DMA_ISR_TCIF7) == 0); // Wait for DMA tranfer conplete (This including the rest should be done using interrupt service routine)
+
+    DMA1_Channel7->CCR &= ~DMA_CCR_EN;  // Disable DMA channel 7
+    DMA1->IFCR |= DMA_IFCR_CTCIF7;      // Clear the DMA transfer complete flag
+
+    // STOP condition
+    I2C1->CR1 |= I2C_CR1_STOP;          
+} 
+
 
 /* void DMA1_Channel7_IRQHandler(void){
     I2C1->CR1 |= I2C_CR1_STOP;
