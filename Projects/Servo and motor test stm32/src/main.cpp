@@ -14,8 +14,8 @@ float value;
 
 /////////// Timers and pins overview /////////////
 /*
-TIM3: Motor output
-  - PA0 to PA3
+TIM3: Motor output (T3C1-T3C4)
+  - PA6, PA7, PB0, PB1
 TIM2: PID controller interrupt on overflow (100Hz) (Probably need 1kHz. Max gyro update is 400Hz???)
 TIM4: read receiver interrupt on compare 1 register (25Hz)
       read LiPo battery voltage interrupt on overflow (25Hz)    
@@ -31,10 +31,11 @@ Programming pins(USART1)
 Gyro and accelerometer (using I2C1)
   - PB6 (SCL1)
   - PB7 (SDA1)
+  - Future external interrupt pin?
 
 Test Pins
   - PA5: analog input of potentiometer
-  - PA7: Digital output for testing of i.e. loop times with ocilloscope
+  - PA3(Not implimented): Digital output for testing of i.e. loop times with ocilloscope
 */
 
 /////////// Global variables for the flight controller /////////////
@@ -100,11 +101,12 @@ void oneshot_125_send(float motor1_output){ // motor1_output E [1000, 2000]
 
   TIM3->CNT = 0; //Clear counter on TIM3
   uint16_t m1_val = ((1.0f - 9001.0f)/(2000.0f - 1000.0f)*(motor1_output - 1000.0f) + 9001.0f); //m1_val E [1, 9001] where 1 is 100% motor thrust
-  if(m1_val > 9001){m1_val = 9001;} //ensure the signal is within the output limits
+  if(m1_val > 9001){m1_val = 9001;} // Ensure the signal is within the output limits
   else if(m1_val < 1){m1_val = 1;}
-  TIM3->CCR3 = m1_val;
+  TIM3->CCR1 = m1_val;
   
-  TIM3->CR1 |= TIM_CR1_CEN; // Enable TIM3 (all motors output)
+  TIM3->EGR |= TIM_EGR_UG; // Update generation
+  TIM3->CR1 |= TIM_CR1_CEN; // Enable TIM3 (all motors outputs)
 }
 
 void set_motor_speed(float motor1_output, float motor2_output, float motor3_output, float motor4_output, uint8_t stop_motors){ // motorx_output E [1000, 2000]
@@ -176,12 +178,21 @@ void set_motor_speed(float motor1_output, float motor2_output, float motor3_outp
 
 void test_one_shot(void){
   pinMode(PA5, INPUT_PULLUP);
-  USART_init();
+  //USART_init();
   oneshot_125_init();
+  //myServo.attach(PA6);
   while(1){
     value = analogRead(PA5);
-    value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
+    value = ((100.0f - 0.0f)/(1023.0f)*(value) + 0.0f);
+    value = value * 10 + 1000;
+    Serial1.print("Value = "); Serial1.println(value);
+    
     oneshot_125_send(value);
+    delayMicroseconds(2100);
+    Serial1.println(TIM3->CNT);
+    
+    //myServo.write(value);
+    delay(250);
   }
 }
 
@@ -307,18 +318,19 @@ void flight_controller(void){
 }
 
 void setup() {
-  pinMode(5, INPUT_PULLUP);
+  Serial1.begin(115200);
+  //pinMode(5, INPUT_PULLUP);
   //myServo.attach(PA6);
-  //Serial1.begin(9600);
-  oneshot_125_init();
+  //oneshot_125_init();
   __enable_irq(); // Enable interrupts ///// Usikker på om denne er nødvendig ////////////
-  USART_init();
+  //USART_init();
   //PID_init(&pid);
+  test_one_shot();
 }
 
 void loop() {
-  value = analogRead(PA5);
-  value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
+  //value = analogRead(PA5);
+  //value = ((100.0f - 0.0f)/(900.0f)*(value) + 0.0f);
   //value = (uint16_t) ((2000.0f - 900.0f)/(1000.0f)*((float)value) + 900.0f);
   //value = map(value, 0, 1000, 900, 2000);
   //Serial1.print(value); Serial1.print("\t");
@@ -327,7 +339,7 @@ void loop() {
   //myServo.writeMicroseconds(value);
   //oneshot_125_send(value);
   myprintf("TIM2 CNT %d \n\r", TIM2->CNT);
-  //delay(18);
+  delay(250);
 }  
 
 
