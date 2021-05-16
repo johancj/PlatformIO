@@ -17,9 +17,9 @@ float value;
 /*
 TIM3: Motor output (T3C1-T3C4)
   - PA6, PA7, PB0, PB1
-TIM2: PID controller interrupt on overflow (100Hz) (Probably need 1kHz. Max gyro update is 400Hz???)
-TIM4: read receiver interrupt on compare 1 register (25Hz)
-      read LiPo battery voltage interrupt on overflow (25Hz)    
+TIM2: PID controller interrupt on overflow (100Hz) (To be adjusted to 1kHz. Can possibly use the mpu6050 external interrupt.)
+TIM4: read receiver interrupt on compare 1 register (25Hz. To be adjusted to 50Hz.)
+      read LiPo battery voltage interrupt on overflow (25Hz. To be adjusted to 50Hz.)    
         - PA4 for ADC4
 
 Reciever SBUS input (USART3)
@@ -29,14 +29,14 @@ Programming pins(USART1)
   - PA9 (TX1)
   - PA10 (RX1)
 
-Gyro and accelerometer (using I2C1)
+Gyro and accelerometer (mpu6050 using I2C1)
   - PB6 (SCL1)
   - PB7 (SDA1)
-  - Future external interrupt pin?
+  - PA3 external interrupt pin
 
 Test Pins
   - PA5: analog input of potentiometer
-  - PA3(Not implimented): Digital output for testing of i.e. loop times with ocilloscope
+  - PA2(Not implimented): Digital output for testing of i.e. loop times with ocilloscope
 */
 
 /////////// Global variables for the flight controller /////////////
@@ -240,27 +240,27 @@ void test_one_shot(void){
 }
 
 void battery_read_init(void){
+
+  /////// NOT TESTED!!! ////////
   
   // Set ADC pheripheral clock to sys_clk / 6 = 12MHz (max 14MHz)
   RCC->CFGR |= RCC_CFGR_ADCPRE_DIV6;
 
   //Enable adc- and GPIOA pheripheral clock
-  RCC->APB2ENR |= RCC_APB2ENR_ADC1EN | RCC_APB2ENR_IOPAEN; 
+  RCC->APB2ENR |= RCC_APB2ENR_ADC1EN | RCC_APB2ENR_IOPAEN | RCC_APB2ENR_AFIOEN; 
 
-  // Set PA4 as input with pull-down resistor
+  // Set PA4 as input push-pull (analoge (ADC requirement))
   GPIOA->CRL &= ~(GPIO_CRL_MODE4 | GPIO_CRL_CNF4_0);
   GPIOA->CRL |= GPIO_CRL_CNF4_1;
-  GPIOA->ODR &= ~GPIO_ODR_ODR4;
 
-  // Enable end of convertion interrupt
-  ADC1->CR1 |= ADC_CR1_EOCIE;
-  NVIC_EnableIRQ(ADC1_IRQn);
+  
 
   ADC1->SMPR2 |= ADC_SMPR2_SMP4; // Sample time selection
   ADC1->SQR1 &= ~ADC_SQR1_L; // 1 convertion only
   ADC1->SQR3 = (4 << ADC_SQR3_SQ1_Pos); // Use ADC channel 4 (PA4)
 
-  ADC1->CR2 |= ADC_CR2_CONT | ADC_CR2_ADON;
+  ADC1->CR2 |= ADC_CR2_CONT;
+  ADC1->CR2 |= ADC_CR2_ADON;
 
   delay(5);
 
@@ -269,13 +269,48 @@ void battery_read_init(void){
   delay(5);
 
   ADC1->CR2 |= ADC_CR2_CAL;
-  while(ADC1->CR2 & ADC_CR2_CAL_Msk);
+  delay(5);
+  //while(ADC1->CR2 & ADC_CR2_CAL_Msk);
+
+  // Enable end of convertion interrupt 
+  //ADC1->CR1 |= ADC_CR1_EOCIE;
+  //NVIC_EnableIRQ(ADC1_IRQn);
+}
+
+void external_mpu6050_interrupt_init(void){
+  // External interrupt from mpu6050 on pin PA3
+
+  /////// Read from PA3 works, but the external interrupt doesn't work for some reason... ////////
+
+  // Enable GPIOA peripheral clock
+  RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
+
+  // Set PA3 as input with pull-down enabled
+  GPIOA->CRL &= ~(GPIO_CRL_MODE3 | GPIO_CRL_CNF3);
+  GPIOA->CRL |= GPIO_CRL_CNF3_1;
+  GPIOA->ODR &= ~GPIO_ODR_ODR3;
+  
+  
+
+  // Enable alternate function peripheral clock
+  RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
+  
+  AFIO->EXTICR[1] &= ~(0xF << AFIO_EXTICR1_EXTI3_Pos); // GPIOA is used (on pin 3)
+  
+  EXTI->IMR |= EXTI_IMR_IM3; // unmasking interrupt mask for pin 3
+  EXTI->RTSR |= EXTI_RTSR_RT3; // Interrupt trigger on rising edge on pin 3
+
+
+  // Enable interrupt
+  NVIC_EnableIRQ(EXTI3_IRQn); 
+
+
 
 }
 
 void flight_controller(void){
   // Max motor update frequency: 4 kHz
-  // Interrupt for PIDs (100Hz?), gyro update(100/400Hz?), reciever and battery voltage(25Hz)
+  // Interrupt for PIDs (100Hz? To be adjusted to 1kHz.), gyro update(100/400Hz? To be adjusted to 1kHz.), reciever and battery voltage(25Hz. To be adjusted to 50Hz.)
 
   float m1_value = 1000.0f; float m2_value = 1000.0f; float m3_value = 1000.0f; float m4_value = 1000.0f;
   
@@ -364,12 +399,28 @@ void setup() {
   //USART_init();
   Serial1.begin(115200);
   delay(50);
-  myprintf((char*)"Funker dette? \n");
+  myprintf((char*)"setup() \n");
+  delay(2);
+
 
   __enable_irq(); // Enable interrupts ///// Usikker på om denne er nødvendig ////////////
 
-  test_one_shot_using_servo();
-  while(1);
+  //test_one_shot_using_servo();
+  
+  /* 
+  external_mpu6050_interrupt_init();
+  while(1){
+    myprintf("PA3 read: %d \n", ((GPIOA->IDR & GPIO_IDR_IDR3_Msk) >> GPIO_IDR_IDR3_Pos));
+    delay(250);
+  }
+  */
+
+  battery_read_init();
+  while (1){
+    Serial1.printf("ADC read: %d \n", ADC1->DR);
+    delay(250);
+  }
+    
 }
 
 void loop() {
@@ -388,7 +439,7 @@ void loop() {
 }  
 
 
-// You find interrupt handler names in "stm32f103xb.h". Just ass "Handler" after "IRQ"!
+// You find interrupt handler names in "stm32f103xb.h". Just add "Handler" after "IRQ"!
 
 void TIM2_IRQHandler(void){ //PID timer(100Hz), TIM2 global handler
 	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts_PID++);
@@ -405,9 +456,14 @@ void TIM4_IRQHandler(void){ //receiver and battery read (25Hz), TIM4 global hand
 void ADC1_2_IRQHandler(void){
   // Check if we are here due to the end of convertion flag
   // Clear the flag by reading the data register
+  myprintf("%d\n", ADC1->SR);
+  delay(2);
   if(ADC1->SR & ADC_SR_EOC){
     adc_val_raw = ADC1->DR;
   }
 }
 
-
+void EXTI3_IRQHandler(void){
+  Serial1.println("EXTI3_IRQHandler");
+  EXTI->PR |= EXTI_PR_PIF3; // Clear interrupt flag
+}

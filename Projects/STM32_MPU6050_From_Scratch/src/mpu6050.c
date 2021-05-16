@@ -18,6 +18,10 @@ void mpu6050_init(void){
     // Digital low pass filter with latency is 0.98ms for 256Hz cutoff frequency. 
     I2C_write(MPU6050_ADDRESS, MPU6050_RA_CONFIG, 0x00);
 
+    // Interrupt configuration: Active high, push-pull, INT high untill cleared, INT status cleared by reading INT_STATUS, 
+    I2C_write(MPU6050_ADDRESS, MPU6050_RA_INT_PIN_CFG, 0b00100000);
+    I2C_write(MPU6050_ADDRESS, MPU6050_RA_INT_ENABLE, 0x01); // Enable interrupt on data ready
+
     // Consider need for zero-rate compensation.
 
     // Temperature compensation (Yes, important when not using DMP!)?
