@@ -241,8 +241,8 @@ void test_one_shot(void){
 
 void battery_read_init(void){
 
-  /////// NOT TESTED!!! ////////
-  
+  ///// Works without interrupts ////////
+
   // Set ADC pheripheral clock to sys_clk / 6 = 12MHz (max 14MHz)
   RCC->CFGR |= RCC_CFGR_ADCPRE_DIV6;
 
@@ -295,7 +295,7 @@ void external_mpu6050_interrupt_init(void){
   // Enable alternate function peripheral clock
   RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
   
-  AFIO->EXTICR[1] &= ~(0xF << AFIO_EXTICR1_EXTI3_Pos); // GPIOA is used (on pin 3)
+  AFIO->EXTICR[0] &= ~(0xF << AFIO_EXTICR1_EXTI3_Pos); // GPIOA is used (on pin 3)
   
   EXTI->IMR |= EXTI_IMR_IM3; // unmasking interrupt mask for pin 3
   EXTI->RTSR |= EXTI_RTSR_RT3; // Interrupt trigger on rising edge on pin 3
@@ -308,9 +308,26 @@ void external_mpu6050_interrupt_init(void){
 
 }
 
+void test_external_interrupts(void){
+  external_mpu6050_interrupt_init();
+  while(1){
+    myprintf("PA3 read: %d \n", ((GPIOA->IDR & GPIO_IDR_IDR3_Msk) >> GPIO_IDR_IDR3_Pos));
+    delay(250);
+  } 
+}
+
+void test_ADC(void){
+  battery_read_init();
+  while (1) {
+    Serial1.printf("ADC read: %d \n", ADC1->DR);
+    delay(250);
+  }
+}
+
 void flight_controller(void){
   // Max motor update frequency: 4 kHz
   // Interrupt for PIDs (100Hz? To be adjusted to 1kHz.), gyro update(100/400Hz? To be adjusted to 1kHz.), reciever and battery voltage(25Hz. To be adjusted to 50Hz.)
+
 
   float m1_value = 1000.0f; float m2_value = 1000.0f; float m3_value = 1000.0f; float m4_value = 1000.0f;
   
@@ -395,6 +412,7 @@ void flight_controller(void){
 
 }
 
+
 void setup() {
   //USART_init();
   Serial1.begin(115200);
@@ -404,23 +422,16 @@ void setup() {
 
 
   __enable_irq(); // Enable interrupts ///// Usikker på om denne er nødvendig ////////////
-
+  
+  PID_init(&pid);
   //test_one_shot_using_servo();
   
-  /* 
-  external_mpu6050_interrupt_init();
-  while(1){
-    myprintf("PA3 read: %d \n", ((GPIOA->IDR & GPIO_IDR_IDR3_Msk) >> GPIO_IDR_IDR3_Pos));
-    delay(250);
-  }
-  */
-
-  battery_read_init();
-  while (1){
-    Serial1.printf("ADC read: %d \n", ADC1->DR);
-    delay(250);
-  }
-    
+  
+ 
+  //test_external_interrupts();
+  
+  //test_ADC();
+  
 }
 
 void loop() {
@@ -434,15 +445,17 @@ void loop() {
   //Serial1.println(m1_val);
 
   //oneshot_125_send(value);
-  myprintf("TIM2 CNT %d \n\r", TIM2->CNT);
-  delay(250);
+  //delayMicroseconds(4000);
+  Serial1.printf("TIM2 CNT %d \n\r", TIM2->CNT);
+  //delay(250);
 }  
 
 
 // You find interrupt handler names in "stm32f103xb.h". Just add "Handler" after "IRQ"!
 
 void TIM2_IRQHandler(void){ //PID timer(100Hz), TIM2 global handler
-	myprintf("TIM2_IRQHandler #%d\n\r", count_interrupts_PID++);
+	Serial1.printf("TIM2_IRQHandler #%d\n\r", count_interrupts_PID++);
+  delay(10);
 	//PID_update(&pid);
 	TIM2->SR &= ~TIM_SR_UIF; // clear update interrupt flag
 } 

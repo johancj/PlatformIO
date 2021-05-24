@@ -1,12 +1,9 @@
 #include <stdio.h>
+#include <stm32f1xx.h>
 //#include <stdlib.h> // for abs()
 
 #include "PID.h"
 #include "USART.h"
-
-#include "stm32f1xx.h"
-
-
 
 
 void PID_timer_init(void){ // Using TIM2 to trigger an interrupt every sample time T
